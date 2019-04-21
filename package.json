@@ -1,0 +1,35 @@
+{
+  "name": "pbhbs",
+  "version": "0.0.1",
+  "description": "",
+  "main": "build/src/index.js",
+  "types": "build/src/index.d.ts",
+  "bin": {
+    "pbhbs": "bin/pbhbs"
+  },
+  "files": [
+    "build/src"
+  ],
+  "license": "UNLICENSED",
+  "keywords": [],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "check": "gts check",
+    "clean": "gts clean",
+    "compile": "tsc -p .",
+    "run": "node build/src/index.js",
+    "fix": "gts fix",
+    "prepare": "npm run compile",
+    "pretest": "npm run compile",
+    "posttest": "npm run check"
+  },
+  "devDependencies": {
+    "gts": "^0.9.0",
+    "typescript": "~3.1.0"
+  },
+  "dependencies": {
+    "@types/node": "^11.13.6",
+    "docopt": "^0.6.2",
+    "protobufjs": "^6.8.8"
+  }
+}
