@@ -30,6 +30,9 @@
   "dependencies": {
     "@types/node": "^11.13.6",
     "docopt": "^0.6.2",
+    "dree": "^2.1.6",
+    "handlebars": "^4.1.2",
+    "handlebars-helpers": "^0.10.0",
     "protobufjs": "^6.8.8"
   }
 }
