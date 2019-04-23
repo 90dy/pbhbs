@@ -6,10 +6,13 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as dree from 'dree'
 import * as handlebars from 'handlebars'
+import * as fse from 'fs-extra'
+import * as handlebarsHelper from 'handlebars-helpers'
+import * as helpers from '../helper'
 
 const doc = `
 Usage:
-  pbhbs [--debug] [--output-dir=<dir>] [--template-dir=<dir>] [--proto-path=<proto_path>...]  <protos>...
+  pbhbs [--debug] [--output-dir=<dir>] [--template-dir=<dir>] [--proto-path=<proto_path>...] [--helper-dir=<helper-dir>]  <protos>...
   pbhbs [--debug] (-h | --help)
   pbhbs [--debug] (-v | --version)
 
@@ -24,6 +27,7 @@ Options:
   -d --debug                  Display debug informations
   -p --proto-path DIR         Adds a directory to the include path
   -t --template-dir DIR       Specify templates directory [default: ./template]
+  -H --helper-dir DIR         Specify handlebars helper directory
   -o --output-dir DIR         Specify output directory [default: .]
 `
 
@@ -34,6 +38,7 @@ declare class PbhbsOptions {
   '--output-dir': string
   '--proto-path': string[]
   '--template-dir': string
+  '--helper-dir': string
   '<protos>': string[]
 }
 
@@ -45,6 +50,29 @@ function help(): number {
 function version(): number {
   console.log('pbhbs version ', pkgVersion)
   return 0
+}
+
+function getAbsolutePath(paths: string[], target: string): string {
+  const resolved: string[] = [
+    ...paths.map(_ => path.normalize(_ + '/' + target)),
+    ...paths.map(_ => path.resolve(process.cwd(), target)),
+  ]
+
+  const res = resolved.find(_ => fs.existsSync(_))
+  if (res == null) {
+    throw new Error(`cannot find path for target: ${target}`)
+  }
+  return fs.realpathSync(res)
+}
+
+function getRelativePath(paths: string[], target: string): string {
+  const abs = getAbsolutePath(paths, target)
+
+  const pathIndex = paths.findIndex(_ => abs.match(new RegExp(`^${_}`)) ? true : false)
+  if (pathIndex === -1) {
+    throw new Error(`cannot get relative path for target: ${abs}`)
+  }
+  return abs.replace(paths[pathIndex], '')
 }
 
 export async function main(argv: string[]): Promise<number> {
@@ -63,75 +91,83 @@ export async function main(argv: string[]): Promise<number> {
     return version()
   }
 
-  options['--proto-path'].push(path.relative(process.cwd(), path.join(__dirname, "..")) || ".")
+  // get relative .proto path from include path
+  options['--proto-path'] = [...options['--proto-path'], '.'].map(_ => fs.realpathSync(path.resolve(_)) + '/')
+  options['<protos>'] = options['<protos>'].map(_ => getRelativePath(options['--proto-path'], _))
+
   // create protobuf root and override path resolver
   const roots: protobuf.Root[] = await Promise.all(
     options['<protos>'].map(async (proto: string): Promise<protobuf.Root> => {
       const root = new protobuf.Root()
       root.filename = proto
 
-
-      const mainFiles: string[] = []
-
       root.resolvePath = function pbjsResolvePath(origin: string, target: string): string {
-
-        const normOrigin = protobuf.util.path.normalize(origin),
-          normTarget = protobuf.util.path.normalize(target)
-        if (!normOrigin) {
-          mainFiles.push(normTarget)
-        }
-
-        let resolved = protobuf.util.path.resolve(normOrigin, normTarget, true)
-        const idx = resolved.lastIndexOf('google/protobuf/')
-        if (idx > -1) {
-          const altname = resolved.substring(idx)
-          if (altname in protobuf.common) {
-            resolved = altname
-          }
-        }
-
-        if (fs.existsSync(resolved)) {
-          return resolved
-        }
-
-        for (let i = 0; i < options['--proto-path'].length; ++i) {
-          const iresolved = protobuf.util.path.resolve(options['--proto-path'][i] + '/', target)
-          if (fs.existsSync(iresolved)) {
-            return iresolved
-          }
-        }
-        return resolved
+        return getAbsolutePath([origin, ...options['--proto-path']], target)
       }
-      // FIXME: resolveAll() failed caused by extensions (no problem in cli mode)
       return root.load(proto)
     })
   )
 
-  console.debug(roots)
+  // add helpers to handlebars
+  handlebarsHelper(handlebars)
+  if (options['--helper-dir'] != null) {
+    const helpers: dree.Dree[] = []
+    dree.scan(options['--helper-dir'], { extensions: ['js', 'ts'] }, (file: dree.Dree) => {
+      console.debug(`helper found: ${file.relativePath}`)
+      helpers.push(file)
+    })
+    helpers.forEach(file => {
+      const handlebarsHelper = require(file.path)
+      if (handlebarsHelper && typeof handlebarsHelper.register === 'function') {
+        console.debug(`${file.relativePath} has a register function, registering with handlebars`)
+        handlebarsHelper.register(handlebars)
+      } else {
+        console.error(`WARNING: helper ${file.relativePath} does not export a 'register' function, cannot import`)
+      }
+    })
+  }
 
   // find template
   const templates: dree.Dree[] = []
   dree.scan(options['--template-dir'], { extensions: ['hbs'] }, (file: dree.Dree) => {
-    console.debug(`template found: ${file.path}`)
+    console.debug(`template found: ${file.relativePath}`)
     templates.push(file)
   })
 
-  // init handlebar
-  await Promise.all(templates.map(async (tmpl: dree.Dree): Promise<void> => {
-    console.log(`template found: ${tmpl.name}`)
-    await Promise.all(roots.map(async (root: protobuf.Root): Promise<void> => {
 
-    const name: string = handlebars.compile(tmpl.name)(root)
-    console.debug(`generating ${name}`)
+  // create output files
+  templates.map((tmpl: dree.Dree): void => {
+    roots.map((root: protobuf.Root): void => {
+      const name: string = path.normalize(
+        options['--output-dir'] + '/' +
+        handlebars.compile(tmpl.relativePath)(root).replace(/\.hbs$/, '')
+      )
+      console.debug(`creating file ${name}`)
+      return fse.outputFileSync(name, '')
+    })
+  })
 
-    // apply on name
+  // generate file content
+  templates.map((tmpl: dree.Dree): void => {
+    roots.map((root: protobuf.Root): void => {
 
+      // apply on name
+      const name: string = path.normalize(
+        options['--output-dir'] + '/' +
+        handlebars.compile(tmpl.relativePath)(root).replace(/\.hbs$/, '')
+      )
+      console.debug(`generating file content for ${name}`)
 
-   // for each name create file
-
-      // for each file generate content
-   }))
-  }))
+      // generate content
+      try {
+        const content = handlebars.compile(fs.readFileSync(tmpl.path, 'utf8'))(root)
+        console.debug(content)
+        return fs.appendFileSync(name, content)
+      } catch (err) {
+        throw new Error(err.message + ' for template ' + tmpl.relativePath + ' line ' + err.lineNumber)
+      }
+    })
+  })
 
   return 0
 }

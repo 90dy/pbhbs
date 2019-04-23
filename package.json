@@ -31,8 +31,11 @@
     "@types/node": "^11.13.6",
     "docopt": "^0.6.2",
     "dree": "^2.1.6",
+    "fs-extra": "^7.0.1",
     "handlebars": "^4.1.2",
     "handlebars-helpers": "^0.10.0",
-    "protobufjs": "^6.8.8"
+    "is-path-inside": "^2.1.0",
+    "protobufjs": "^6.8.8",
+    "resolve-path": "^1.4.0"
   }
 }
