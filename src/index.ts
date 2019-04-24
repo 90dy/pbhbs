@@ -48,7 +48,7 @@ function help(): number {
 }
 
 function version(): number {
-  console.log('pbhbs version ', pkgVersion)
+  console.log(`pbhbs version ${pkgVersion}`)
   return 0
 }
 
@@ -104,7 +104,8 @@ export async function main(argv: string[]): Promise<number> {
       root.resolvePath = function pbjsResolvePath(origin: string, target: string): string {
         return getAbsolutePath([origin, ...options['--proto-path']], target)
       }
-      return root.load(proto)
+      root.loadSync(proto).resolveAll()
+      return root
     })
   )
 
@@ -161,7 +162,6 @@ export async function main(argv: string[]): Promise<number> {
       // generate content
       try {
         const content = handlebars.compile(fs.readFileSync(tmpl.path, 'utf8'))(root)
-        console.debug(content)
         return fs.appendFileSync(name, content)
       } catch (err) {
         throw new Error(err.message + ' for template ' + tmpl.relativePath + ' line ' + err.lineNumber)

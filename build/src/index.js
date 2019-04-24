@@ -42,7 +42,7 @@ function help() {
     return 0;
 }
 function version() {
-    console.log('pbhbs version ', package_json_1.version);
+    console.log(`pbhbs version ${package_json_1.version}`);
     return 0;
 }
 function getAbsolutePath(paths, target) {
@@ -87,7 +87,8 @@ function main(argv) {
             root.resolvePath = function pbjsResolvePath(origin, target) {
                 return getAbsolutePath([origin, ...options['--proto-path']], target);
             };
-            return root.load(proto);
+            root.loadSync(proto).resolveAll();
+            return root;
         })));
         // add helpers to handlebars
         handlebarsHelper(handlebars);
@@ -133,7 +134,6 @@ function main(argv) {
                 // generate content
                 try {
                     const content = handlebars.compile(fs.readFileSync(tmpl.path, 'utf8'))(root);
-                    console.debug(content);
                     return fs.appendFileSync(name, content);
                 }
                 catch (err) {
