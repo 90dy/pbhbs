@@ -119,7 +119,7 @@ function main(argv) {
         templates.map((tmpl) => {
             roots.map((root) => {
                 const name = path.normalize(options['--output-dir'] + '/' +
-                    handlebars.compile(tmpl.relativePath)(root).replace(/\.hbs$/, ''));
+                    handlebars.compile(tmpl.relativePath, { noEscape: true })(root).replace(/\.hbs$/, ''));
                 console.debug(`creating file ${name}`);
                 return fse.outputFileSync(name, '');
             });
@@ -129,11 +129,11 @@ function main(argv) {
             roots.map((root) => {
                 // apply on name
                 const name = path.normalize(options['--output-dir'] + '/' +
-                    handlebars.compile(tmpl.relativePath)(root).replace(/\.hbs$/, ''));
+                    handlebars.compile(tmpl.relativePath, { noEscape: true })(root).replace(/\.hbs$/, ''));
                 console.debug(`generating file content for ${name}`);
                 // generate content
                 try {
-                    const content = handlebars.compile(fs.readFileSync(tmpl.path, 'utf8'))(root);
+                    const content = handlebars.compile(fs.readFileSync(tmpl.path, 'utf8'), { noEscape: true })(root);
                     return fs.appendFileSync(name, content);
                 }
                 catch (err) {

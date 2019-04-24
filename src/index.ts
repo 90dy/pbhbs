@@ -141,7 +141,7 @@ export async function main(argv: string[]): Promise<number> {
     roots.map((root: protobuf.Root): void => {
       const name: string = path.normalize(
         options['--output-dir'] + '/' +
-        handlebars.compile(tmpl.relativePath)(root).replace(/\.hbs$/, '')
+        handlebars.compile(tmpl.relativePath, {noEscape: true})(root).replace(/\.hbs$/, '')
       )
       console.debug(`creating file ${name}`)
       return fse.outputFileSync(name, '')
@@ -155,13 +155,13 @@ export async function main(argv: string[]): Promise<number> {
       // apply on name
       const name: string = path.normalize(
         options['--output-dir'] + '/' +
-        handlebars.compile(tmpl.relativePath)(root).replace(/\.hbs$/, '')
+        handlebars.compile(tmpl.relativePath, {noEscape: true})(root).replace(/\.hbs$/, '')
       )
       console.debug(`generating file content for ${name}`)
 
       // generate content
       try {
-        const content = handlebars.compile(fs.readFileSync(tmpl.path, 'utf8'))(root)
+        const content = handlebars.compile(fs.readFileSync(tmpl.path, 'utf8'), {noEscape: true})(root)
         return fs.appendFileSync(name, content)
       } catch (err) {
         throw new Error(err.message + ' for template ' + tmpl.relativePath + ' line ' + err.lineNumber)
