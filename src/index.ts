@@ -9,6 +9,7 @@ import * as handlebars from 'handlebars'
 import * as fse from 'fs-extra'
 import * as handlebarsHelper from 'handlebars-helpers'
 import * as helpers from '../helper'
+import * as child_process from 'child_process'
 
 const doc = `
 Usage:
@@ -112,6 +113,7 @@ export async function main(argv: string[]): Promise<number> {
   // add helpers to handlebars
   handlebarsHelper(handlebars)
   if (options['--helper-dir'] != null) {
+    child_process.execSync('npm install', { cwd: options['--helper-dir'] })
     const helpers: dree.Dree[] = []
     dree.scan(options['--helper-dir'], { extensions: ['js', 'ts'] }, (file: dree.Dree) => {
       console.debug(`helper found: ${file.relativePath}`)

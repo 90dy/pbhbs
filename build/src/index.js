@@ -17,6 +17,7 @@ const dree = require("dree");
 const handlebars = require("handlebars");
 const fse = require("fs-extra");
 const handlebarsHelper = require("handlebars-helpers");
+const child_process = require("child_process");
 const doc = `
 Usage:
   pbhbs [--debug] [--output-dir=<dir>] [--template-dir=<dir>] [--proto-path=<proto_path>...] [--helper-dir=<helper-dir>]  <protos>...
@@ -93,6 +94,7 @@ function main(argv) {
         // add helpers to handlebars
         handlebarsHelper(handlebars);
         if (options['--helper-dir'] != null) {
+            child_process.execSync('npm install', { cwd: options['--helper-dir'] });
             const helpers = [];
             dree.scan(options['--helper-dir'], { extensions: ['js', 'ts'] }, (file) => {
                 console.debug(`helper found: ${file.relativePath}`);
