@@ -1,6 +1,7 @@
 {
   "extends": "gts/tslint.json",
   "rules": {
-    "semicolon": [true, "never"]
+    "semicolon": [true, "never"],
+    "indent": [true, "spaces", 2]
   }
 }
