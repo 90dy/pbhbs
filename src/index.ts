@@ -1,4 +1,3 @@
-import * as child_process from 'child_process'
 import {docopt} from 'docopt'
 import * as dree from 'dree'
 import * as fs from 'fs'
@@ -116,7 +115,6 @@ export async function main(argv: string[]): Promise<number> {
   // add helpers to handlebars
   handlebarsHelper(handlebars)
   if (options['--helper-dir'] != null) {
-    child_process.execSync('npm install', {cwd: options['--helper-dir']})
     const helpers: dree.Dree[] = []
     dree.scan(options['--helper-dir'], { extensions: ['js', 'ts'] }, (file: dree.Dree) => {
       console.debug(`helper found: ${file.relativePath}`)

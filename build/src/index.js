@@ -8,7 +8,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const child_process = require("child_process");
 const docopt_1 = require("docopt");
 const dree = require("dree");
 const fs = require("fs");
@@ -90,7 +89,6 @@ function main(argv) {
         // add helpers to handlebars
         handlebarsHelper(handlebars);
         if (options['--helper-dir'] != null) {
-            child_process.execSync('npm install', { cwd: options['--helper-dir'] });
             const helpers = [];
             dree.scan(options['--helper-dir'], { extensions: ['js', 'ts'] }, (file) => {
                 console.debug(`helper found: ${file.relativePath}`);
