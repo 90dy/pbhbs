@@ -87,7 +87,8 @@ function main(argv) {
         };
         root.loadSync(options['<protos>']).resolveAll();
         // add helpers to handlebars
-        handlebarsHelper(handlebars);
+        handlebarsHelper({ handlebars });
+        console.log(handlebarsHelper);
         if (options['--helper-dir'] != null) {
             const helpers = [];
             dree.scan(options['--helper-dir'], { extensions: ['js', 'ts'] }, (file) => {
