@@ -114,7 +114,6 @@ export async function main(argv: string[]): Promise<number> {
 
   // add helpers to handlebars
   handlebarsHelper({ handlebars })
-  console.log(handlebarsHelper)
   if (options['--helper-dir'] != null) {
     const helpers: dree.Dree[] = []
     dree.scan(options['--helper-dir'], { extensions: ['js', 'ts'] }, (file: dree.Dree) => {
