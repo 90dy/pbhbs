@@ -91,7 +91,8 @@ function main(argv) {
             .resolveAll();
         // add helpers to handlebars
         handlebarsHelper({ handlebars });
-        const helperDirs = [path.join(__dirname, '../helpers'), ...options['--helper-dir']];
+        const helperDirs = [path.join(__dirname, '../../helpers'), ...options['--helper-dir']];
+        console.debug('helperDirs', helperDirs);
         helperDirs.forEach(helperDir => {
             if (helperDir != null) {
                 const helpers = [];

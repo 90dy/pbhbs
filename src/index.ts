@@ -114,7 +114,8 @@ export async function main(argv: string[]): Promise<number> {
 
   // add helpers to handlebars
   handlebarsHelper({handlebars})
-	const helperDirs: Array<string> = [path.join(__dirname, '../helpers'), ...options['--helper-dir']]
+	const helperDirs: Array<string> = [path.join(__dirname, '../../helpers'), ...options['--helper-dir']]
+	console.debug('helperDirs', helperDirs)
   helperDirs.forEach(helperDir => {
     if (helperDir != null) {
       const helpers: dree.Dree[] = []
