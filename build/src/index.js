@@ -20,7 +20,7 @@ const package_json_1 = require("../package.json");
 const doc = `pbhbs version ${package_json_1.version}
 
 Usage:
-  pbhbs [--debug] [--output-dir=<dir>] [--template-dir=<dir>] [--proto-path=<proto_path>...] [--helper-dir=<helper-dir>]  <protos>...
+  pbhbs [--debug] [--output-dir=<dir>] [--template-dir=<dir>] [--proto-path=<proto_path>...] [--helper-dir=<helper-dir>...]  <protos>...
   pbhbs [--debug] (-h | --help)
   pbhbs [--debug] (-v | --version)
 
@@ -35,7 +35,7 @@ Options:
   -d --debug                  Display debug informations
   -p --proto-path DIR         Adds a directory to the include path
   -t --template-dir DIR       Specify templates directory [default: ./template]
-  -H --helper-dir DIR         Specify handlebars helper directory
+  -H --helper-dir DIR         Specify handlebars helper directories
   -o --output-dir DIR         Specify output directory [default: .]`;
 function help() {
     console.log(doc);
@@ -79,33 +79,39 @@ function main(argv) {
         }
         // get relative .proto path from include path
         options['--proto-path'] = [...options['--proto-path'], '.'].map(_ => fs.realpathSync(path.resolve(_)) + '/');
-        options['<protos>'] = options['<protos>'].map(_ => getRelativePath(options['--proto-path'], _));
+        options['<protos>'] =
+            options['<protos>'].map(_ => getRelativePath(options['--proto-path'], _));
         const root = new protobuf.Root();
         // permit to resolve proto-path
-        root.resolvePath = function pbjsResolvePath(origin, target) {
-            return getAbsolutePath([origin, ...options['--proto-path']], target);
-        };
-        root.loadSync(options['<protos>']).resolveAll();
+        root.resolvePath =
+            function pbjsResolvePath(origin, target) {
+                return getAbsolutePath([origin, ...options['--proto-path']], target);
+            };
+        root.loadSync(options['<protos>'])
+            .resolveAll();
         // add helpers to handlebars
         handlebarsHelper({ handlebars });
-        if (options['--helper-dir'] != null) {
-            const helpers = [];
-            dree.scan(options['--helper-dir'], { extensions: ['js', 'ts'] }, (file) => {
-                console.debug(`helper found: ${file.relativePath}`);
-                helpers.push(file);
-            });
-            helpers.forEach(file => {
-                const handlebarsHelper = require(file.path);
-                if (handlebarsHelper &&
-                    typeof handlebarsHelper.register === 'function') {
-                    console.debug(`${file.relativePath} has a register function, registering with handlebars`);
-                    handlebarsHelper.register(handlebars);
-                }
-                else {
-                    console.error(`WARNING: helper ${file.relativePath} does not export a 'register' function, cannot import`);
-                }
-            });
-        }
+        const helperDirs = [path.join(__dirname, '../helpers'), ...options['--helper-dir']];
+        helperDirs.forEach(helperDir => {
+            if (helperDir != null) {
+                const helpers = [];
+                dree.scan(helperDir, { extensions: ['js', 'ts'] }, (file) => {
+                    console.debug(`helper found: ${file.relativePath}`);
+                    helpers.push(file);
+                });
+                helpers.forEach(file => {
+                    const handlebarsHelper = require(file.path);
+                    if (handlebarsHelper &&
+                        typeof handlebarsHelper.register === 'function') {
+                        console.debug(`${file.relativePath} has a register function, registering with handlebars`);
+                        handlebarsHelper.register(handlebars);
+                    }
+                    else {
+                        console.error(`WARNING: helper ${file.relativePath} does not export a 'register' function, cannot import`);
+                    }
+                });
+            }
+        });
         // find template
         const templates = [];
         dree.scan(options['--template-dir'], { extensions: ['hbs'] }, (file) => {
@@ -118,7 +124,8 @@ function main(argv) {
                 // use proto filename as root filename
                 root.filename = proto;
                 const name = path.normalize(options['--output-dir'] + '/' +
-                    handlebars.compile(tmpl.relativePath, { noEscape: true })(root).replace(/\.hbs$/, ''));
+                    handlebars.compile(tmpl.relativePath, { noEscape: true })(root)
+                        .replace(/\.hbs$/, ''));
                 console.debug(`creating file ${name}`);
                 fse.outputFileSync(name, '');
                 // apply on name
